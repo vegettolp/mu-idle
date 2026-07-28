@@ -8,6 +8,7 @@ export const ALL_SKILLS: Record<string, Skill[]> = {
   DARK_KNIGHT: [
     { id: 'slash', name: 'Slash', icon: '⚔️', type: 'single', color: '#dc2626', projectileType: 'bolt', damage: 15, level: 1, mana: 0 },
     { id: 'twisting_slash', name: 'Twisting Slash', icon: '🌀', type: 'aoe', color: '#ff6600', projectileType: 'evil_spirit', damage: 25, aoeRange: 1, level: 10, mana: 5 },
+    { id: 'death_stab', name: 'Death Stab', icon: '💀', type: 'single', color: '#ff0000', projectileType: 'arrow', damage: 40, level: 20, mana: 8 },
   ],
   DARK_WIZARD: [
     { id: 'energy_ball', name: 'Energy Ball', icon: '🔮', type: 'single', color: '#3b82f6', projectileType: 'bolt', damage: 20, level: 1, mana: 3 },

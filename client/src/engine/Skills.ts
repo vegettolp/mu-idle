@@ -1,4 +1,5 @@
 import { PlayerData } from './Player'
+import { Formulas } from '../data/formulas'
 
 interface MonsterData {
   id: string
@@ -17,6 +18,24 @@ interface ArrowProjectile { x: number; y: number; targetX: number; targetY: numb
 const SQM_SIZE = 55
 const gridToPixel = (gx: number, gy: number) => ({ x: gx * SQM_SIZE + SQM_SIZE / 2, y: gy * SQM_SIZE + SQM_SIZE / 2 })
 
+function getBaseDamage(player: PlayerData): number {
+  const eq = player.equipment
+  if (player.classType === 'DARK_KNIGHT') {
+    const wpnDmg = eq.weapon ? ((eq.weapon.damageMin || 3) + (eq.weapon.damageMax || 7)) / 2 : 5
+    const dmgInfo = Formulas.dkDamage(player.stats.str, wpnDmg, player.level)
+    return dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
+  } else if (player.classType === 'DARK_WIZARD') {
+    const wiz = eq.weapon?.wizardry || 5
+    const dmgInfo = Formulas.dwDamage(player.stats.ene, wiz, player.level)
+    return dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
+  } else if (player.classType === 'ELF') {
+    const wpnDmg = eq.weapon ? ((eq.weapon.damageMin || 4) + (eq.weapon.damageMax || 8)) / 2 : 5
+    const dmgInfo = Formulas.elfDamage(player.stats.str, player.stats.agi, wpnDmg, player.level)
+    return dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
+  }
+  return 10
+}
+
 export function executeSkill(
   skillId: string,
   player: PlayerData,
@@ -28,8 +47,9 @@ export function executeSkill(
   onDamage: (monster: MonsterData, dmg: number) => void
 ): number {
   let totalDmg = 0
-
   if (!target || !skillId) return 0
+
+  const baseDamage = getBaseDamage(player)
 
   // EVIL SPIRITS (DW)
   if (skillId === 'evil_spirits') {
@@ -44,10 +64,8 @@ export function executeSkill(
     monsters.forEach(m => {
       if (m.isDead) return
       if (Math.abs(m.gridX-player.gridX)+Math.abs(m.gridY-player.gridY) <= 6) {
-        const dmg = 35 + Math.random()*10
-        m.hp -= dmg
-        totalDmg += dmg
-        onDamage(m, dmg)
+        const dmg = baseDamage * 1.5 + 15
+        m.hp -= dmg; totalDmg += dmg; onDamage(m, dmg)
       }
     })
   }
@@ -62,10 +80,8 @@ export function executeSkill(
     monsters.forEach(m => {
       if (m.isDead) return
       if (Math.abs(m.gridX-player.gridX)<=1 && Math.abs(m.gridY-player.gridY)<=1) {
-        const dmg = 25 + Math.random()*8
-        m.hp -= dmg
-        totalDmg += dmg
-        onDamage(m, dmg)
+        const dmg = baseDamage * 1.3 + 10
+        m.hp -= dmg; totalDmg += dmg; onDamage(m, dmg)
       }
     })
   }
@@ -84,17 +100,47 @@ export function executeSkill(
     }
     const hitMonsters = new Set<MonsterData>(); hitMonsters.add(target)
     monsters.forEach(m => {
-      if(!m.isDead && m!==target && Math.abs(m.gridX-target.gridX)<=1 && Math.abs(m.gridY-target.gridY)<=1) {
-        hitMonsters.add(m)
-      }
+      if(!m.isDead && m!==target && Math.abs(m.gridX-target.gridX)<=1 && Math.abs(m.gridY-target.gridY)<=1) hitMonsters.add(m)
     })
     hitMonsters.forEach(m => {
-      const dmg = 28 + Math.random()*8
-      m.hp -= dmg
-      totalDmg += dmg
-      onDamage(m, dmg)
+      const dmg = baseDamage * 1.4 + 12
+      m.hp -= dmg; totalDmg += dmg; onDamage(m, dmg)
     })
   }
+
+  // DEATH STAB (DK) - Range 2, atinge alvo + adjacentes
+else if (skillId === 'death_stab') {
+  const pPos = gridToPixel(player.gridX, player.gridY)
+  const tPos = gridToPixel(target.gridX, target.gridY)
+  
+  // Criar projétil vermelho
+  arrowProjectilesRef.current.push({
+    x: pPos.x, y: pPos.y,
+    targetX: tPos.x, targetY: tPos.y,
+    speed: 8, color: '#ff0000', alive: true
+  })
+  
+  // Atinge o alvo principal + adjacentes
+  const hitMonsters = new Set<MonsterData>()
+  hitMonsters.add(target)
+  
+  // Adicionar monstros adjacentes ao alvo
+  monsters.forEach(m => {
+    if (!m.isDead && m !== target && 
+        Math.abs(m.gridX - target.gridX) <= 1 && 
+        Math.abs(m.gridY - target.gridY) <= 1) {
+      hitMonsters.add(m)
+    }
+  })
+  
+  // Aplicar dano em todos
+  hitMonsters.forEach(m => {
+    const dmg = baseDamage * 2.5 + 25
+    m.hp -= dmg
+    totalDmg += dmg
+    onDamage(m, dmg)
+  })
+}
 
   return totalDmg
 }

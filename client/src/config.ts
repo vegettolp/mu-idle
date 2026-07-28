@@ -1,15 +1,10 @@
-// ============================================
-// CONFIGURAÇÕES DO JOGO
-// ============================================
-
 export const SQM_SIZE = 55
-export const CANVAS_W = 770
-export const CANVAS_H = 495
+export const CANVAS_W = 880
+export const CANVAS_H = 550
 export const GRID_COLS = Math.floor(CANVAS_W / SQM_SIZE)
 export const GRID_ROWS = Math.floor(CANVAS_H / SQM_SIZE)
 export const MOVE_SPEED = 0.06
 
-// Cache de imagens
 export const imageCache: Record<string, HTMLImageElement> = {}
 export const loadImage = (src: string): Promise<HTMLImageElement> => {
   return new Promise((resolve) => {
@@ -33,4 +28,11 @@ export const SPRITE_PATHS = [
   '/assets/sprites/monsters/spider.png',
   '/assets/sprites/monsters/skeleton.png',
   '/assets/sprites/monsters/budgedragon.png',
+  '/assets/sprites/monsters/lord_of_ferea.png',
+  '/assets/sprites/monsters/ferea_general.png',
 ]
+
+export const MAP_BG: Record<string, string> = {
+  lorencia: '/assets/maps/hunt_bg.png',
+  lord_of_ferea: '/assets/maps/ferea_bg.png',
+}

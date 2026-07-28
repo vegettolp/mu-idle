@@ -67,7 +67,7 @@ export function createPlayers(): PlayerData[] {
       level: 1, exp: 0,
       stats: { ...baseStats }, statPoints: 0,
       hp, maxHp: hp, mana, maxMana: mana,
-      attackRange: cls === 'DARK_KNIGHT' ? 1 : cls === 'DARK_WIZARD' ? 6 : 5,
+      attackRange: cls === 'DARK_KNIGHT' ? 1 : cls === 'DARK_WIZARD' ? 3 : 2,
       attackCooldown: 0, moveCooldown: 0,
       projectiles: [], skills: [], selectedSkill: 0,
       isDead: false, isMoving: false, isAttacking: false,

@@ -14,6 +14,12 @@ export interface MonsterData {
   facingRight: boolean
   isBoss: boolean
   targetPlayerId: string | null
+  isInvulnerable?: boolean
+  shieldActive?: boolean
+  generalSpawned?: boolean
+  phase1Triggered?: boolean
+  phase2Triggered?: boolean
+  linkedLordId?: string
 }
 
 export interface GhostProjectile {

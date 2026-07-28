@@ -15,7 +15,29 @@ export const BOSS_DATA = {
   moveSpeed: 200
 }
 
+export const LORD_FEREA = {
+  name: 'Lord of Ferea',
+  level: 400,
+  hp: 2000,
+  maxHp: 2000,
+  attack: 50,
+  defense: 30,
+  exp: 10000,
+  moveSpeed: 180
+}
+
+export const FEREA_GENERAL = {
+  name: 'Ferea General',
+  level: 350,
+  hp: 1000,
+  maxHp: 1000,
+  attack: 35,
+  defense: 20,
+  exp: 5000,
+  moveSpeed: 200
+}
+
 export function getMonsterCount(wave: number): number {
-  if (wave >= 10) return 1 // Boss
-  return 5 * wave // Wave 1=5, Wave 2=10, ..., Wave 9=45
+  if (wave >= 10) return 1
+  return 5 * wave
 }

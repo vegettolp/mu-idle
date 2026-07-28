@@ -1,9 +1,8 @@
-import { drawFloatingDamages } from './Renderer'
 import { PlayerData } from './Player'
 import { MonsterData, GhostProjectile, TwistingSlash, ArrowProjectile } from '../types'
 import { SQM_SIZE, MOVE_SPEED, GRID_COLS, GRID_ROWS } from '../config'
 import { processPlayerCombat, processMonsterAI } from './Combat'
-import { drawBackground, drawGrid, drawDeathScreen, drawMonsters, drawBossHpBar, drawPlayers, drawProjectiles } from './Renderer'
+import { drawBackground, drawGrid, drawDeathScreen, drawMonsters, drawBossHpBar, drawPlayers, drawProjectiles, drawFloatingDamages } from './Renderer'
 import { ParticleSystem } from './effects/ParticleSystem'
 
 const isSqmOccupied = (gx: number, gy: number, players: PlayerData[], monsters: MonsterData[]): boolean => {
@@ -35,7 +34,8 @@ export function createGameLoop(
   onExp: (player: PlayerData, exp: number) => void,
   setTotalSuppliesCost: (fn: (prev: number) => number) => void,
   resetGame: () => void,
-  spawnMonstersFn: (waveNum: number) => MonsterData[]
+  spawnMonstersFn: (waveNum: number) => MonsterData[],
+  selectedMap: string
 ): () => void {
   
   let frameCount = 0
@@ -64,6 +64,20 @@ export function createGameLoop(
       return
     } else { isDeadRef.current = false }
 
+    // Regeneração do Lord of Ferea (0.5% por segundo)
+    monsters.forEach(m => {
+      if (m.isInvulnerable && m.shieldActive && m.name === 'Lord of Ferea') {
+        if (frameCount % 60 === 0) {
+          m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.005)
+        }
+        const generalAlive = monsters.find(g => g.name === 'Ferea General' && !g.isDead)
+        if (!generalAlive) {
+          m.isInvulnerable = false
+          m.shieldActive = false
+        }
+      }
+    })
+
     players.forEach(player => {
       processPlayerCombat(player, monsters, frameCount, ghostProjectilesRef, twistingSlashRef, arrowProjectilesRef, particleSystemRef, onKill, onDamage, onExp, setTotalSuppliesCost)
     })
@@ -72,34 +86,47 @@ export function createGameLoop(
 
     let aliveCount = 0
     monsters.forEach(m => {
-      if (m.isDead) return
+      if (m.isDead) {
+        m.respawnTimer--
+        if (m.respawnTimer <= 0 && !m.isBoss) {
+          m.isDead=false; m.hp=m.maxHp; m.moveCooldown=0; m.isMoving=false; m.targetPlayerId=null
+          let gx:number,gy:number,attempts=0
+          do { gx=3+Math.floor(Math.random()*10); gy=2+Math.floor(Math.random()*6); attempts++ }
+          while (isSqmOccupied(gx,gy,players,monsters)&&attempts<100)
+          m.gridX=gx; m.gridY=gy; m.pixelX=gx*SQM_SIZE+SQM_SIZE/2; m.pixelY=gy*SQM_SIZE+SQM_SIZE/2
+        }
+        return
+      }
       aliveCount++
       processMonsterAI(m, players, monsters, (gx, gy) => isSqmOccupied(gx, gy, players, monsters))
     })
 
     monsters.forEach(m=>{if(m.isDead)return;const tx=m.gridX*SQM_SIZE+SQM_SIZE/2;const ty=m.gridY*SQM_SIZE+SQM_SIZE/2;m.pixelX+=(tx-m.pixelX)*MOVE_SPEED;m.pixelY+=(ty-m.pixelY)*MOVE_SPEED})
 
-    const allMonstersDead = monsters.every(m => m.isDead)
-    
-    if (allMonstersDead && monsters.length > 0 && !waveChanged) {
-      waveChanged = true
-      
+    // Só avança wave em Lorencia
+    if (selectedMap === 'lorencia') {
+      const allMonstersDead = monsters.every(m => m.isDead)
+      if (allMonstersDead && monsters.length > 0 && !waveChanged) {
+        waveChanged = true
+        setTimeout(() => {
+          const boss = monsters.find(m => m.isBoss)
+          if (boss) { waveRef.current = 1; setWave(1) }
+          else { waveRef.current++; setWave(waveRef.current) }
+          killsRef.current = 0; setKills(0)
+          monstersRef.current = spawnMonstersFn(waveRef.current)
+          waveChanged = false
+        }, 1000)
+      }
+    }
+
+    // Verificar se Lord of Ferea morreu → voltar para Lorencia
+    const lordDead = monsters.find(m => m.name === 'Lord of Ferea' && m.isDead)
+    if (lordDead && selectedMap === 'lord_of_ferea') {
       setTimeout(() => {
-        const boss = monsters.find(m => m.isBoss)
-        
-        if (boss) {
-          waveRef.current = 1
-          setWave(1)
-        } else {
-          waveRef.current++
-          setWave(waveRef.current)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('returnToLorencia'))
         }
-        
-        killsRef.current = 0
-        setKills(0)
-        monstersRef.current = spawnMonstersFn(waveRef.current)
-        waveChanged = false
-      }, 1000)
+      }, 2000)
     }
 
     drawMonsters(ctx, monsters, frameCount)
@@ -107,6 +134,7 @@ export function createGameLoop(
     drawPlayers(ctx, players)
     drawProjectiles(ctx, arrowProjectilesRef.current, ghostProjectilesRef.current, twistingSlashRef.current, particleSystemRef.current)
     drawFloatingDamages(ctx)
+
     animationId = requestAnimationFrame(gameLoop)
   }
 
