@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  players   Player[]
+}
+
+model Player {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  class       String
+  level       Int      @default(1)
+  exp         Int      @default(0)
+  zen         Int      @default(0)
+  str         Int      @default(10)
+  agi         Int      @default(10)
+  vit         Int      @default(10)
+  ene         Int      @default(10)
+  currentHp   Int      @default(100)
+  maxHp       Int      @default(100)
+  currentMana Int      @default(50)
+  maxMana     Int      @default(50)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  hunts       Hunt[]
+  createdAt   DateTime @default(now())
+}
+
+model Hunt {
+  id        String   @id @default(uuid())
+  huntType  String
+  wave      Int      @default(1)
+  state     String   @default("IN_PROGRESS")
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id])
+  createdAt DateTime @default(now())
+}
