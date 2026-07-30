@@ -15,7 +15,7 @@ const isSqmOccupied = (gx: number, gy: number, players: PlayerData[], monsters: 
 export function createGameLoop(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
-  players: PlayerData[],
+  playersRef: { current: PlayerData[] },
   monstersRef: { current: MonsterData[] },
   bgImageRef: { current: HTMLImageElement | null },
   particleSystemRef: { current: ParticleSystem },
@@ -29,21 +29,26 @@ export function createGameLoop(
   isDeadRef: { current: boolean },
   setWave: (w: number) => void,
   setKills: (k: number) => void,
-  onKill: (monster: MonsterData) => void,
+  onKill: (monster: MonsterData, killer: PlayerData) => void,
   onDamage: (label: string, dmg: number) => void,
   onExp: (player: PlayerData, exp: number) => void,
   setTotalSuppliesCost: (fn: (prev: number) => number) => void,
+  onRevive: () => void,
+  onDeath: () => void,
   resetGame: () => void,
   spawnMonstersFn: (waveNum: number) => MonsterData[],
   selectedMap: string
-): () => void {
+): { stop: () => void } {
   
   let frameCount = 0
   let animationId = 0
   let waveChanged = false
+  let running = true
 
   const gameLoop = () => {
+    if (!running) return
     frameCount++
+    const players = playersRef.current
     const monsters = monstersRef.current
     particleSystemRef.current.update()
 
@@ -56,15 +61,12 @@ export function createGameLoop(
 
     const allDead = players.every(p => p.isDead)
     if (allDead) {
-      if (!isDeadRef.current) { isDeadRef.current = true; deadTimerRef.current = 180 }
-      deadTimerRef.current--
-      drawDeathScreen(ctx, deadTimerRef.current)
-      if (deadTimerRef.current <= 0) { waveRef.current = 1; setWave(1); resetGame() }
-      animationId = requestAnimationFrame(gameLoop)
+      if (!isDeadRef.current) { isDeadRef.current = true; onDeath() }
+      drawDeathScreen(ctx, 0)
+      if (running) animationId = requestAnimationFrame(gameLoop)
       return
     } else { isDeadRef.current = false }
 
-    // Regeneração do Lord of Ferea (0.5% por segundo)
     monsters.forEach(m => {
       if (m.isInvulnerable && m.shieldActive && m.name === 'Lord of Ferea') {
         if (frameCount % 60 === 0) {
@@ -79,7 +81,7 @@ export function createGameLoop(
     })
 
     players.forEach(player => {
-      processPlayerCombat(player, monsters, frameCount, ghostProjectilesRef, twistingSlashRef, arrowProjectilesRef, particleSystemRef, onKill, onDamage, onExp, setTotalSuppliesCost)
+      processPlayerCombat(player, monsters, frameCount, ghostProjectilesRef, twistingSlashRef, arrowProjectilesRef, particleSystemRef, onKill, onDamage, onExp, setTotalSuppliesCost, (gx, gy) => isSqmOccupied(gx, gy, players, monsters))
     })
 
     players.forEach(p => { const tx=p.gridX*SQM_SIZE+SQM_SIZE/2; const ty=p.gridY*SQM_SIZE+SQM_SIZE/2; p.pixelX+=(tx-p.pixelX)*MOVE_SPEED; p.pixelY+=(ty-p.pixelY)*MOVE_SPEED })
@@ -103,7 +105,6 @@ export function createGameLoop(
 
     monsters.forEach(m=>{if(m.isDead)return;const tx=m.gridX*SQM_SIZE+SQM_SIZE/2;const ty=m.gridY*SQM_SIZE+SQM_SIZE/2;m.pixelX+=(tx-m.pixelX)*MOVE_SPEED;m.pixelY+=(ty-m.pixelY)*MOVE_SPEED})
 
-    // Só avança wave em Lorencia
     if (selectedMap === 'lorencia') {
       const allMonstersDead = monsters.every(m => m.isDead)
       if (allMonstersDead && monsters.length > 0 && !waveChanged) {
@@ -119,7 +120,6 @@ export function createGameLoop(
       }
     }
 
-    // Verificar se Lord of Ferea morreu → voltar para Lorencia
     const lordDead = monsters.find(m => m.name === 'Lord of Ferea' && m.isDead)
     if (lordDead && selectedMap === 'lord_of_ferea') {
       setTimeout(() => {
@@ -135,9 +135,15 @@ export function createGameLoop(
     drawProjectiles(ctx, arrowProjectilesRef.current, ghostProjectilesRef.current, twistingSlashRef.current, particleSystemRef.current)
     drawFloatingDamages(ctx)
 
-    animationId = requestAnimationFrame(gameLoop)
+    if (running) animationId = requestAnimationFrame(gameLoop)
   }
 
   gameLoop()
-  return () => cancelAnimationFrame(animationId)
+
+  return {
+    stop: () => {
+      running = false
+      cancelAnimationFrame(animationId)
+    }
+  }
 }

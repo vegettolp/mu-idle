@@ -20,6 +20,13 @@ interface FloatingDamage {
 
 const floatingDamages: FloatingDamage[] = []
 
+export function resetRendererState(): void {
+  for (const key of Object.keys(bossAnimations)) delete bossAnimations[key]
+  floatingDamages.length = 0
+  deathStabFrame = 0
+  deathStabTimer = 0
+}
+
 export function addFloatingDamage(x: number, y: number, value: number, type: 'normal' | 'crit' | 'ignore' | 'excellent' | 'monster' = 'normal'): void {
   const colors: Record<string, string> = { normal: '#ff8800', crit: '#3b82f6', ignore: '#60a5fa', excellent: '#10b981', monster: '#ef4444' }
   floatingDamages.push({ x: x + (Math.random() - 0.5) * 30, y: y - 20, value: Math.floor(value), color: colors[type], life: 40, maxLife: 40 })

@@ -8,6 +8,14 @@ export const CLASS_BASE_STATS = {
   ELF:          { str: 22, agi: 25, vit: 20, ene: 15, life: 80,  mana: 30, lifePerVit: 2.0, manaPerEne: 2.0, lifePerLvl: 2, manaPerLvl: 1.5 },
 }
 
+export const AUTO_STAT_PER_LEVEL = {
+  DARK_KNIGHT: { str: 2, agi: 1, vit: 1.5, ene: 0.5 },
+  DARK_WIZARD: { str: 1, agi: 1, vit: 1, ene: 2 },
+  ELF:         { str: 1.5, agi: 2, vit: 1, ene: 0.5 },
+}
+
+export const MAX_PLAYER_LEVEL = 50
+
 export const Formulas = {
   // ============================================
   // DANO
@@ -82,8 +90,8 @@ export const Formulas = {
   // EXP
   // ============================================
   expForLevel: (level: number): number => {
-    if (level <= 10) return level * 100
-    if (level <= 50) return level * level * 15
+    if (level <= 10) return level * 80
+    if (level <= 50) return level * level * 12 + 200
     if (level <= 100) return level * level * 25
     return level * level * 40
   },
@@ -102,5 +110,56 @@ export const Formulas = {
     return Math.floor(baseExp * mult)
   },
 
-  statPointsPerLevel: 5
+  // ============================================
+  // ITEM SCALING (escala stats do item conforme nível do player)
+  // ============================================
+  scaleItemStat: (baseStat: number, itemLevel: number, playerLevel: number): number => {
+    const diff = Math.max(0, playerLevel - itemLevel)
+    const multiplier = 1 + diff * 0.03
+    return Math.floor(baseStat * multiplier)
+  },
+
+  // ============================================
+  // ITEM QUALITY SCORE (para borda colorida e auto-equip)
+  // ============================================
+  getItemScore: (item: any, playerLevel: number): number => {
+    let score = 0
+    if (item.damageMin) score += (item.damageMin + (item.damageMax || item.damageMin)) / 2 * 2
+    if (item.wizardry) score += item.wizardry * 2
+    if (item.defense) score += item.defense * 3
+    score += item.level || 1
+    score = score * (1 + Math.max(0, playerLevel - (item.level || 1)) * 0.02)
+    return Math.floor(score)
+  },
+
+  getItemQualityColor: (score: number, minScore: number, maxScore: number, hasItems: boolean): string => {
+    const range = maxScore - minScore
+    if (range === 0) return hasItems ? '#ff8c00' : '#6b7280'
+    const pct = (score - minScore) / range
+    if (pct >= 0.8) return '#ff8c00'   // Orange (best)
+    if (pct >= 0.6) return '#a855f7'   // Purple
+    if (pct >= 0.4) return '#3b82f6'   // Blue
+    if (pct >= 0.2) return '#22c55e'   // Green
+    return '#6b7280'                     // Gray (weakest)
+  },
+
+  statPointsPerLevel: 5,
+
+  levelUp: (player: { level: number; exp: number; statPoints: number; stats: { str: number; agi: number; vit: number; ene: number }; classType: string }): boolean => {
+    let leveled = false
+    while (player.exp >= Formulas.expForLevel(player.level) && player.level < MAX_PLAYER_LEVEL) {
+      player.exp -= Formulas.expForLevel(player.level)
+      player.level++
+      player.statPoints += 5
+      const autoStats = AUTO_STAT_PER_LEVEL[player.classType as keyof typeof AUTO_STAT_PER_LEVEL]
+      if (autoStats) {
+        player.stats.str += Math.floor(autoStats.str)
+        player.stats.agi += Math.floor(autoStats.agi)
+        player.stats.vit += Math.floor(autoStats.vit)
+        player.stats.ene += Math.floor(autoStats.ene)
+      }
+      leveled = true
+    }
+    return leveled
+  }
 }

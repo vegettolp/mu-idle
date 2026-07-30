@@ -54,18 +54,27 @@ export default function CharacterStats({ player, inventoryItems, zen, onClose, o
   const eq = player.equipment
   let damageInfo = { min: 0, max: 0 }
   if (player.classType === 'DARK_KNIGHT') {
-    const wpnDmg = (eq.weapon?.damageMin + eq.weapon?.damageMax) / 2 || 5
-    damageInfo = Formulas.dkDamage(player.stats.str, wpnDmg, player.level)
+    const wpn = eq.weapon
+    const rawDmg = wpn ? ((wpn.damageMin || 3) + (wpn.damageMax || 7)) / 2 : 5
+    const itemLvl = wpn?.level || 1
+    const scaledDmg = Formulas.scaleItemStat(rawDmg, itemLvl, player.level)
+    damageInfo = Formulas.dkDamage(player.stats.str, scaledDmg, player.level)
   } else if (player.classType === 'DARK_WIZARD') {
-    const wiz = eq.weapon?.wizardry || 5
-    damageInfo = Formulas.dwDamage(player.stats.ene, wiz, player.level)
+    const wpn = eq.weapon
+    const rawWiz = wpn?.wizardry || 5
+    const itemLvl = wpn?.level || 1
+    const scaledWiz = Formulas.scaleItemStat(rawWiz, itemLvl, player.level)
+    damageInfo = Formulas.dwDamage(player.stats.ene, scaledWiz, player.level)
   } else if (player.classType === 'ELF') {
-    const wpnDmg = (eq.weapon?.damageMin + eq.weapon?.damageMax) / 2 || 5
-    damageInfo = Formulas.elfDamage(player.stats.str, player.stats.agi, wpnDmg, player.level)
+    const wpn = eq.weapon
+    const rawDmg = wpn ? ((wpn.damageMin || 4) + (wpn.damageMax || 8)) / 2 : 5
+    const itemLvl = wpn?.level || 1
+    const scaledDmg = Formulas.scaleItemStat(rawDmg, itemLvl, player.level)
+    damageInfo = Formulas.elfDamage(player.stats.str, player.stats.agi, scaledDmg, player.level)
   }
 
   let equipDef = 0
-  Object.values(eq).forEach((item: any) => { if (item?.defense) equipDef += item.defense })
+  Object.values(eq).forEach((item: any) => { if (item?.defense) { const scaled = Formulas.scaleItemStat(item.defense, item.level || 1, player.level); equipDef += scaled } })
   const totalDef = Formulas.defense(0, player.stats.agi, equipDef)
   const attackRate = Formulas.attackRate(player.level, player.stats.agi, player.classType)
 

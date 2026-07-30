@@ -1,0 +1,6 @@
+services:
+  muidle:
+    image: muidle
+    build:
+      context: .
+      dockerfile: ./Dockerfile
