@@ -1,0 +1,45 @@
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "Player" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "class" TEXT NOT NULL,
+    "level" INTEGER NOT NULL DEFAULT 1,
+    "exp" INTEGER NOT NULL DEFAULT 0,
+    "zen" INTEGER NOT NULL DEFAULT 0,
+    "str" INTEGER NOT NULL DEFAULT 10,
+    "agi" INTEGER NOT NULL DEFAULT 10,
+    "vit" INTEGER NOT NULL DEFAULT 10,
+    "ene" INTEGER NOT NULL DEFAULT 10,
+    "currentHp" INTEGER NOT NULL DEFAULT 100,
+    "maxHp" INTEGER NOT NULL DEFAULT 100,
+    "currentMana" INTEGER NOT NULL DEFAULT 50,
+    "maxMana" INTEGER NOT NULL DEFAULT 50,
+    "userId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Player_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Hunt" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "huntType" TEXT NOT NULL,
+    "wave" INTEGER NOT NULL DEFAULT 1,
+    "state" TEXT NOT NULL DEFAULT 'IN_PROGRESS',
+    "playerId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Hunt_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Player_name_key" ON "Player"("name");

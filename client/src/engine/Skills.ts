@@ -1,19 +1,6 @@
 import { PlayerData } from './Player'
 import { Formulas } from '../data/formulas'
-
-interface MonsterData {
-  id: string
-  gridX: number; gridY: number
-  hp: number; maxHp: number
-  isDead: boolean; respawnTimer: number
-  level: number
-  exp: number
-  isBoss: boolean
-}
-
-interface GhostProjectile { x: number; y: number; angle: number; radius: number; speed: number; life: number; maxLife: number; playerGridX: number; playerGridY: number }
-interface TwistingSlash { x: number; y: number; angle: number; life: number; maxLife: number; playerGridX: number; playerGridY: number }
-interface ArrowProjectile { x: number; y: number; targetX: number; targetY: number; speed: number; color: string; alive: boolean }
+import { MonsterData, GhostProjectile, TwistingSlash, ArrowProjectile } from '../types'
 
 const SQM_SIZE = 55
 const gridToPixel = (gx: number, gy: number) => ({ x: gx * SQM_SIZE + SQM_SIZE / 2, y: gy * SQM_SIZE + SQM_SIZE / 2 })
@@ -21,16 +8,25 @@ const gridToPixel = (gx: number, gy: number) => ({ x: gx * SQM_SIZE + SQM_SIZE /
 function getBaseDamage(player: PlayerData): number {
   const eq = player.equipment
   if (player.classType === 'DARK_KNIGHT') {
-    const wpnDmg = eq.weapon ? ((eq.weapon.damageMin || 3) + (eq.weapon.damageMax || 7)) / 2 : 5
-    const dmgInfo = Formulas.dkDamage(player.stats.str, wpnDmg, player.level)
+    const wpn = eq.weapon
+    const rawDmg = wpn ? ((wpn.damageMin || 3) + (wpn.damageMax || 7)) / 2 : 5
+    const itemLvl = wpn?.level || 1
+    const scaledDmg = Formulas.scaleItemStat(rawDmg, itemLvl, player.level)
+    const dmgInfo = Formulas.dkDamage(player.stats.str, scaledDmg, player.level)
     return dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
   } else if (player.classType === 'DARK_WIZARD') {
-    const wiz = eq.weapon?.wizardry || 5
-    const dmgInfo = Formulas.dwDamage(player.stats.ene, wiz, player.level)
+    const wpn = eq.weapon
+    const rawWiz = wpn?.wizardry || 5
+    const itemLvl = wpn?.level || 1
+    const scaledWiz = Formulas.scaleItemStat(rawWiz, itemLvl, player.level)
+    const dmgInfo = Formulas.dwDamage(player.stats.ene, scaledWiz, player.level)
     return dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
   } else if (player.classType === 'ELF') {
-    const wpnDmg = eq.weapon ? ((eq.weapon.damageMin || 4) + (eq.weapon.damageMax || 8)) / 2 : 5
-    const dmgInfo = Formulas.elfDamage(player.stats.str, player.stats.agi, wpnDmg, player.level)
+    const wpn = eq.weapon
+    const rawDmg = wpn ? ((wpn.damageMin || 4) + (wpn.damageMax || 8)) / 2 : 5
+    const itemLvl = wpn?.level || 1
+    const scaledDmg = Formulas.scaleItemStat(rawDmg, itemLvl, player.level)
+    const dmgInfo = Formulas.elfDamage(player.stats.str, player.stats.agi, scaledDmg, player.level)
     return dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
   }
   return 10

@@ -71,7 +71,7 @@ export function createPlayers(): PlayerData[] {
       attackCooldown: 0, moveCooldown: 0,
       projectiles: [], skills: [], selectedSkill: 0,
       isDead: false, isMoving: false, isAttacking: false,
-      equipment: { weapon: null, helmet: null, armor: null, pants: null, gloves: null, boots: null, ring1: null, ring2: null, amulet: null },
+      equipment: { weapon: null, shield: null, helmet: null, armor: null, pants: null, gloves: null, boots: null, ring1: null, ring2: null, amulet: null, earring1: null, earring2: null, pet: null, wings: null, pentagram: null, artifact: null },
       animation: anim,
       facingRight: true,
       hpPotions: 200,

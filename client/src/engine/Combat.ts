@@ -46,10 +46,11 @@ export function processPlayerCombat(
   twistingSlashRef: { current: TwistingSlash | null },
   arrowProjectilesRef: { current: ArrowProjectile[] },
   particleSystemRef: { current: ParticleSystem },
-  onKill: (monster: MonsterData) => void,
+  onKill: (monster: MonsterData, killer: PlayerData) => void,
   onDamage: (label: string, dmg: number) => void,
   onExp: (player: PlayerData, exp: number) => void,
-  setTotalSuppliesCost: (fn: (prev: number) => number) => void
+  setTotalSuppliesCost: (fn: (prev: number) => number) => void,
+  isSqmOccupied: (gx: number, gy: number) => boolean
 ): void {
   if (player.isDead) return
   player.moveCooldown--
@@ -91,16 +92,35 @@ export function processPlayerCombat(
         player.moveCooldown = 25
       }
     } else {
+      const safeRange = player.attackRange + 1
       if (cd <= 1) {
-        const ax = -Math.sign(target.gridX-player.gridX); const ay = -Math.sign(target.gridY-player.gridY)
-        const nx = player.gridX + ax; const ny = player.gridY + ay
-        if (nx >= 0 && nx < GRID_COLS && ny >= 0 && ny < GRID_ROWS) { player.gridX = nx; player.gridY = ny; player.isMoving = true }
-        player.moveCooldown = 35
-      } else if (cd > player.attackRange + 2) {
-        const dx = Math.sign(target.gridX-player.gridX)
+        const dx = Math.sign(player.gridX - target.gridX) || (Math.random() < 0.5 ? 1 : -1)
+        const dy = Math.sign(player.gridY - target.gridY) || (Math.random() < 0.5 ? 1 : -1)
+        let moved = false
         const nx = player.gridX + dx
-        if (nx >= 0 && nx < GRID_COLS) { player.gridX = nx; player.isMoving = true }
-        player.moveCooldown = 30
+        if (nx >= 0 && nx < GRID_COLS && !isSqmOccupied(nx, player.gridY)) {
+          player.gridX = nx; moved = true
+        }
+        const ny = player.gridY + dy
+        if (ny >= 0 && ny < GRID_ROWS && !isSqmOccupied(player.gridX, ny)) {
+          player.gridY = ny; moved = true
+        }
+        if (moved) player.isMoving = true
+        player.moveCooldown = 25
+      } else if (cd > safeRange) {
+        const dx = Math.sign(target.gridX - player.gridX)
+        const dy = Math.sign(target.gridY - player.gridY)
+        let moved = false
+        const nx = player.gridX + dx
+        if (nx >= 0 && nx < GRID_COLS && !isSqmOccupied(nx, player.gridY)) {
+          player.gridX = nx; moved = true
+        }
+        const ny = player.gridY + dy
+        if (ny >= 0 && ny < GRID_ROWS && !isSqmOccupied(player.gridX, ny)) {
+          player.gridY = ny; moved = true
+        }
+        if (moved) { player.isMoving = true; player.facingRight = dx > 0 }
+        player.moveCooldown = 20
       }
     }
   }
@@ -121,34 +141,43 @@ export function processPlayerCombat(
     if (skill && skill.type === 'aoe') {
       totalDmg = executeSkill(skill.id, player, target, monsters, ghostProjectilesRef, twistingSlashRef, arrowProjectilesRef, (m, dmg) => {
         if (m.isInvulnerable) return
-        if (m.hp <= 0) { m.isDead = true; m.respawnTimer = 99999; onKill(m); onExp(player, Formulas.expFromMonster(m.level, player.level)) }
+        if (m.hp <= 0) { m.isDead = true; m.respawnTimer = 99999; onKill(m, player); onExp(player, Formulas.expFromMonster(m.level, player.level)) }
         addFloatingDamage(gridToPixel(m.gridX, m.gridY).x, gridToPixel(m.gridX, m.gridY).y, dmg, 'normal')
       })
     } else if (skill?.id === 'death_stab') {
       totalDmg = executeSkill(skill.id, player, target, monsters, ghostProjectilesRef, twistingSlashRef, arrowProjectilesRef, (m, dmg) => {
         if (m.isInvulnerable) return
-        if (m.hp <= 0) { m.isDead = true; m.respawnTimer = 99999; onKill(m); onExp(player, Formulas.expFromMonster(m.level, player.level)) }
+        if (m.hp <= 0) { m.isDead = true; m.respawnTimer = 99999; onKill(m, player); onExp(player, Formulas.expFromMonster(m.level, player.level)) }
         addFloatingDamage(gridToPixel(m.gridX, m.gridY).x, gridToPixel(m.gridX, m.gridY).y, dmg, 'crit')
       })
     } else {
       const eq = player.equipment
       if (player.classType === 'DARK_KNIGHT') {
-        const wpnDmg = eq.weapon ? ((eq.weapon.damageMin || 3) + (eq.weapon.damageMax || 7)) / 2 : 5
-        const dmgInfo = Formulas.dkDamage(player.stats.str, wpnDmg, player.level)
+        const wpn = eq.weapon
+        const rawDmg = wpn ? ((wpn.damageMin || 3) + (wpn.damageMax || 7)) / 2 : 5
+        const itemLvl = wpn?.level || 1
+        const scaledDmg = Formulas.scaleItemStat(rawDmg, itemLvl, player.level)
+        const dmgInfo = Formulas.dkDamage(player.stats.str, scaledDmg, player.level)
         totalDmg = dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
       } else if (player.classType === 'DARK_WIZARD') {
-        const wiz = eq.weapon?.wizardry || 5
-        const dmgInfo = Formulas.dwDamage(player.stats.ene, wiz, player.level)
+        const wpn = eq.weapon
+        const rawWiz = wpn?.wizardry || 5
+        const itemLvl = wpn?.level || 1
+        const scaledWiz = Formulas.scaleItemStat(rawWiz, itemLvl, player.level)
+        const dmgInfo = Formulas.dwDamage(player.stats.ene, scaledWiz, player.level)
         totalDmg = dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
       } else if (player.classType === 'ELF') {
-        const wpnDmg = eq.weapon ? ((eq.weapon.damageMin || 4) + (eq.weapon.damageMax || 8)) / 2 : 5
-        const dmgInfo = Formulas.elfDamage(player.stats.str, player.stats.agi, wpnDmg, player.level)
+        const wpn = eq.weapon
+        const rawDmg = wpn ? ((wpn.damageMin || 4) + (wpn.damageMax || 8)) / 2 : 5
+        const itemLvl = wpn?.level || 1
+        const scaledDmg = Formulas.scaleItemStat(rawDmg, itemLvl, player.level)
+        const dmgInfo = Formulas.elfDamage(player.stats.str, player.stats.agi, scaledDmg, player.level)
         totalDmg = dmgInfo.min + Math.random() * (dmgInfo.max - dmgInfo.min)
       }
       if (skill) totalDmg += skill.damage
       target.hp -= totalDmg
       particleSystemRef.current.emit(gridToPixel(target.gridX,target.gridY).x, gridToPixel(target.gridX,target.gridY).y, 5, '#ff6600', 2, 15)
-      if (target.hp <= 0) { target.isDead = true; target.respawnTimer = 99999; onKill(target); onExp(player, Formulas.expFromMonster(target.level, player.level)) }
+      if (target.hp <= 0) { target.isDead = true; target.respawnTimer = 99999; onKill(target, player); onExp(player, Formulas.expFromMonster(target.level, player.level)) }
       const dmgType = Math.random() < 0.1 ? 'crit' : Math.random() < 0.05 ? 'excellent' : 'normal'
       addFloatingDamage(gridToPixel(target.gridX, target.gridY).x, gridToPixel(target.gridX, target.gridY).y, totalDmg, dmgType)
     }
@@ -172,7 +201,6 @@ export function processPlayerCombat(
     player.isAttacking = true
     setTimeout(() => { player.isAttacking = false }, 300)
     if (target.hp <= 0) player.targetId = null
-    if (player.exp >= Formulas.expForLevel(player.level)) { player.level++; player.exp-=Formulas.expForLevel(player.level-1); player.statPoints+=5; onExp(player, 0) }
     player.attackCooldown = skill?.type==='aoe' ? 70 : 40
   }
 
@@ -225,7 +253,11 @@ export function processMonsterAI(
     } else if (cdist <= 1) {
       monster.isMoving = false
       if (Math.random() < 0.05) {
-        const dmg = 3+Math.random()*6
+        let equipDef = 0
+        Object.values(targetPlayer.equipment).forEach((item: any) => { if (item?.defense) { const scaled = Formulas.scaleItemStat(item.defense, item.level || 1, targetPlayer.level); equipDef += scaled } })
+        const totalDef = Formulas.defense(0, targetPlayer.stats.agi, equipDef)
+        const rawDmg = 3+Math.random()*6
+        const dmg = Formulas.calculateDamage(rawDmg, totalDef, monster.level, targetPlayer.level)
         targetPlayer.hp -= dmg
         if (targetPlayer.hp<=0) targetPlayer.isDead=true
         addFloatingDamage(gridToPixel(targetPlayer.gridX, targetPlayer.gridY).x, gridToPixel(targetPlayer.gridX, targetPlayer.gridY).y, dmg, 'monster')

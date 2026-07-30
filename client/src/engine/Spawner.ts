@@ -1,6 +1,6 @@
 import { MonsterData } from '../types'
 import { PlayerData } from './Player'
-import { MONSTERS_DATA, BOSS_DATA, LORD_FEREA, getMonsterCount } from '../data/monsters'
+import { MONSTERS_DATA, BOSS_DATA, LORD_FEREA, getMonsterCount, isBossWave } from '../data/monsters'
 import { SQM_SIZE, GRID_COLS, GRID_ROWS } from '../config'
 
 const isSqmOccupied = (gx: number, gy: number, players: PlayerData[], monsters: MonsterData[]): boolean => {
@@ -10,11 +10,11 @@ const isSqmOccupied = (gx: number, gy: number, players: PlayerData[], monsters: 
   return false
 }
 
-export function spawnMonsters(waveNum: number, players: PlayerData[], existingMonsters: MonsterData[]): MonsterData[] {
+export function spawnMonsters(waveNum: number, players: PlayerData[], existingMonsters: MonsterData[], bossSpawnCount: number = 0): MonsterData[] {
   const newMonsters: MonsterData[] = []
-  const count = getMonsterCount(waveNum)
 
-  if (waveNum >= 10) {
+  if (isBossWave(waveNum)) {
+    const bossHpBonus = bossSpawnCount * 500
     let gx: number, gy: number, attempts = 0
     do { gx = 6 + Math.floor(Math.random() * 4); gy = 3 + Math.floor(Math.random() * 4); attempts++ }
     while (isSqmOccupied(gx, gy, players, newMonsters) && attempts < 50)
@@ -22,7 +22,7 @@ export function spawnMonsters(waveNum: number, players: PlayerData[], existingMo
     newMonsters.push({
       id: 'boss_' + Date.now(), gridX: gx, gridY: gy, pixelX: px, pixelY: py,
       name: BOSS_DATA.name, level: BOSS_DATA.level,
-      hp: BOSS_DATA.hp, maxHp: BOSS_DATA.maxHp,
+      hp: BOSS_DATA.hp + bossHpBonus, maxHp: BOSS_DATA.maxHp + bossHpBonus,
       attack: BOSS_DATA.attack, defense: BOSS_DATA.defense,
       exp: BOSS_DATA.exp, speed: Math.floor(BOSS_DATA.moveSpeed / 80),
       isDead: false, respawnTimer: 0, moveCooldown: 0,
@@ -32,6 +32,7 @@ export function spawnMonsters(waveNum: number, players: PlayerData[], existingMo
       phase1Triggered: false, phase2Triggered: false
     })
   } else {
+    const count = getMonsterCount(waveNum)
     const available = MONSTERS_DATA.filter(m => m.level <= waveNum * 2 + 2)
     for (let i = 0; i < count; i++) {
       let gx: number, gy: number, attempts = 0

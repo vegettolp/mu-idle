@@ -62,8 +62,8 @@ export const ITEMS_DATA = {
   ] as ItemData[],
   
   accessories: [
-    { id: 'acc1', name: 'Ring of Ice', type: 'accessory', slot: 'ring', class: ['DARK_KNIGHT', 'DARK_WIZARD', 'ELF'], iceResist: 10, level: 10, icon: '💍', image: 'Ring%20of%20Ice.jpg', zenValue: 500 },
-    { id: 'acc2', name: 'Ring of Fire', type: 'accessory', slot: 'ring', class: ['DARK_KNIGHT', 'DARK_WIZARD', 'ELF'], fireResist: 10, level: 10, icon: '💍', image: 'Ring%20of%20Fire.jpg', zenValue: 500 },
+    { id: 'acc1', name: 'Ring of Ice', type: 'accessory', slot: 'ring1', class: ['DARK_KNIGHT', 'DARK_WIZARD', 'ELF'], iceResist: 10, level: 10, icon: '💍', image: 'Ring%20of%20Ice.jpg', zenValue: 500 },
+    { id: 'acc2', name: 'Ring of Fire', type: 'accessory', slot: 'ring2', class: ['DARK_KNIGHT', 'DARK_WIZARD', 'ELF'], fireResist: 10, level: 10, icon: '💍', image: 'Ring%20of%20Fire.jpg', zenValue: 500 },
     { id: 'acc3', name: 'Amulet of Health', type: 'accessory', slot: 'amulet', class: ['DARK_KNIGHT', 'DARK_WIZARD', 'ELF'], hpBonus: 50, level: 8, icon: '📿', image: 'Amulet%20of%20Health.jpg', zenValue: 800 },
   ] as ItemData[]
 }

@@ -37,7 +37,15 @@ export const FEREA_GENERAL = {
   moveSpeed: 200
 }
 
+export function isBossWave(wave: number): boolean {
+  return wave % 10 === 0
+}
+
 export function getMonsterCount(wave: number): number {
-  if (wave >= 10) return 1
-  return 5 * wave
+  if (isBossWave(wave)) return 1
+  if (wave >= 90) return 15
+  if (wave >= 70) return 12
+  if (wave >= 50) return 10
+  if (wave >= 30) return 8
+  return 5 + Math.floor(wave / 5)
 }
