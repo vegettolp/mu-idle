@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MONSTERS_DATA, BOSS_DATA, LORD_FEREA, FEREA_GENERAL, getMonsterCount } from '../monsters'
+import { MONSTERS_DATA, BOSS_DATA, LORD_FEREA, FEREA_GENERAL, getMonsterCount, isBossWave } from '../monsters'
 
 describe('MONSTERS_DATA', () => {
   it('has exactly 3 monster types', () => {
@@ -54,15 +54,38 @@ describe('FEREA_GENERAL', () => {
   })
 })
 
-describe('getMonsterCount', () => {
-  it('returns 5 per wave for wave 1-9', () => {
-    expect(getMonsterCount(1)).toBe(5)
-    expect(getMonsterCount(5)).toBe(25)
-    expect(getMonsterCount(9)).toBe(45)
+describe('isBossWave', () => {
+  it('returns true for waves divisible by 10', () => {
+    expect(isBossWave(10)).toBe(true)
+    expect(isBossWave(20)).toBe(true)
+    expect(isBossWave(100)).toBe(true)
   })
 
-  it('returns 1 for wave 10+ (boss wave)', () => {
+  it('returns false for non-boss waves', () => {
+    expect(isBossWave(1)).toBe(false)
+    expect(isBossWave(5)).toBe(false)
+    expect(isBossWave(9)).toBe(false)
+    expect(isBossWave(11)).toBe(false)
+  })
+})
+
+describe('getMonsterCount', () => {
+  it('returns correct count for early waves', () => {
+    expect(getMonsterCount(1)).toBe(5)
+    expect(getMonsterCount(5)).toBe(6)
+    expect(getMonsterCount(9)).toBe(6)
+  })
+
+  it('returns 1 for boss waves', () => {
     expect(getMonsterCount(10)).toBe(1)
-    expect(getMonsterCount(50)).toBe(1)
+    expect(getMonsterCount(20)).toBe(1)
+    expect(getMonsterCount(100)).toBe(1)
+  })
+
+  it('returns higher counts for later waves', () => {
+    expect(getMonsterCount(11)).toBe(7)
+    expect(getMonsterCount(51)).toBe(10)
+    expect(getMonsterCount(71)).toBe(12)
+    expect(getMonsterCount(91)).toBe(15)
   })
 })

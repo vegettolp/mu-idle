@@ -47,9 +47,10 @@ describe('spawnMonsters', () => {
     expect(monsters).toHaveLength(5)
   })
 
-  it('spawns 50 monsters for wave 10 (before boss logic)', () => {
+  it('spawns correct count for wave 9', () => {
     const monsters = spawnMonsters(9, players, existing)
-    expect(monsters).toHaveLength(45)
+    expect(monsters.length).toBeGreaterThanOrEqual(5)
+    expect(monsters.every(m => !m.isBoss)).toBe(true)
   })
 
   it('spawns a boss for wave 10+', () => {

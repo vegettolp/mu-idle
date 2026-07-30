@@ -176,8 +176,9 @@ describe('Formulas.levelUp', () => {
     expect(leveled).toBe(true)
     expect(player.level).toBe(2)
     expect(player.exp).toBe(0)
-    expect(player.statPoints).toBe(5)
-    expect(player.stats.str).toBeGreaterThan(28)
+    expect(player.statPoints).toBe(0)
+    expect(player.stats.str).toBe(33)
+    expect(player.stats.vit).toBe(28)
   })
 
   it('does not level up when exp is below threshold', () => {
@@ -193,7 +194,8 @@ describe('Formulas.levelUp', () => {
     const leveled = Formulas.levelUp(player)
     expect(leveled).toBe(true)
     expect(player.level).toBeGreaterThanOrEqual(2)
-    expect(player.statPoints).toBeGreaterThanOrEqual(5)
+    expect(player.statPoints).toBe(0)
+    expect(player.stats.str).toBeGreaterThan(28)
   })
 
   it('carries over excess exp after level up', () => {

@@ -16,6 +16,12 @@ export const AUTO_STAT_PER_LEVEL = {
 
 export const MAX_PLAYER_LEVEL = 50
 
+export const AUTO_STAT_DISTRIBUTION: Record<string, { stat: string; amount: number }[]> = {
+  DARK_KNIGHT: [{ stat: 'str', amount: 3 }, { stat: 'vit', amount: 2 }],
+  DARK_WIZARD: [{ stat: 'ene', amount: 3 }, { stat: 'agi', amount: 2 }],
+  ELF:         [{ stat: 'agi', amount: 3 }, { stat: 'ene', amount: 2 }],
+}
+
 export const Formulas = {
   // ============================================
   // DANO
@@ -150,7 +156,12 @@ export const Formulas = {
     while (player.exp >= Formulas.expForLevel(player.level) && player.level < MAX_PLAYER_LEVEL) {
       player.exp -= Formulas.expForLevel(player.level)
       player.level++
-      player.statPoints += 5
+      const dist = AUTO_STAT_DISTRIBUTION[player.classType]
+      if (dist) {
+        dist.forEach(d => { (player.stats as any)[d.stat] += d.amount })
+      } else {
+        player.statPoints += 5
+      }
       const autoStats = AUTO_STAT_PER_LEVEL[player.classType as keyof typeof AUTO_STAT_PER_LEVEL]
       if (autoStats) {
         player.stats.str += Math.floor(autoStats.str)

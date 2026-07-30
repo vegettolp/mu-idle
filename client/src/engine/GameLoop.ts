@@ -37,6 +37,7 @@ export function createGameLoop(
   onDeath: () => void,
   resetGame: () => void,
   spawnMonstersFn: (waveNum: number) => MonsterData[],
+  bossSpawnCountRef: { current: number },
   selectedMap: string
 ): { stop: () => void } {
   
@@ -86,7 +87,9 @@ export function createGameLoop(
 
     players.forEach(p => { const tx=p.gridX*SQM_SIZE+SQM_SIZE/2; const ty=p.gridY*SQM_SIZE+SQM_SIZE/2; p.pixelX+=(tx-p.pixelX)*MOVE_SPEED; p.pixelY+=(ty-p.pixelY)*MOVE_SPEED })
 
-    let aliveCount = 0
+    let aliveBeforeRespawn = 0
+    monsters.forEach(m => { if (!m.isDead) aliveBeforeRespawn++ })
+
     monsters.forEach(m => {
       if (m.isDead) {
         m.respawnTimer--
@@ -99,23 +102,37 @@ export function createGameLoop(
         }
         return
       }
-      aliveCount++
       processMonsterAI(m, players, monsters, (gx, gy) => isSqmOccupied(gx, gy, players, monsters))
     })
 
     monsters.forEach(m=>{if(m.isDead)return;const tx=m.gridX*SQM_SIZE+SQM_SIZE/2;const ty=m.gridY*SQM_SIZE+SQM_SIZE/2;m.pixelX+=(tx-m.pixelX)*MOVE_SPEED;m.pixelY+=(ty-m.pixelY)*MOVE_SPEED})
 
     if (selectedMap === 'lorencia') {
-      const allMonstersDead = monsters.every(m => m.isDead)
-      if (allMonstersDead && monsters.length > 0 && !waveChanged) {
+      if (aliveBeforeRespawn === 0 && monsters.length > 0 && !waveChanged) {
         waveChanged = true
+        console.log('[WAVE] Transition scheduled for wave', waveRef.current, 'monstersRef has', monstersRef.current.length, 'monsters')
         setTimeout(() => {
-          const boss = monsters.find(m => m.isBoss)
-          if (boss) { waveRef.current = 1; setWave(1) }
-          else { waveRef.current++; setWave(waveRef.current) }
-          killsRef.current = 0; setKills(0)
-          monstersRef.current = spawnMonstersFn(waveRef.current)
-          waveChanged = false
+          try {
+            console.log('[WAVE] Running transition, waveRef.current before:', waveRef.current)
+            if (waveRef.current >= 100) { waveRef.current = 1; setWave(1); bossSpawnCountRef.current = 0 }
+            else {
+              waveRef.current++; setWave(waveRef.current)
+              if (waveRef.current % 10 === 0) bossSpawnCountRef.current++
+            }
+            killsRef.current = 0; setKills(0)
+            console.log('[WAVE] Calling spawnMonstersFn with wave', waveRef.current)
+            const spawned = spawnMonstersFn(waveRef.current)
+            console.log('[WAVE] spawnMonstersFn returned', spawned?.length, 'monsters, isDead flags:', spawned?.map(m => m.isDead))
+            if (spawned && spawned.length > 0) {
+              monstersRef.current = spawned
+              console.log('[WAVE] monstersRef.current now has', monstersRef.current.length, 'monsters, isDead:', monstersRef.current.map(m => m.isDead))
+            }
+          } catch (e) {
+            console.error('[WAVE] ERROR during transition:', e)
+          } finally {
+            waveChanged = false
+            console.log('[WAVE] Transition complete, waveRef.current:', waveRef.current)
+          }
         }, 1000)
       }
     }

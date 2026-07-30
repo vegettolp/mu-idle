@@ -54,6 +54,7 @@ function App() {
   const twistingSlashRef = useRef<TwistingSlash | null>(null)
   const arrowProjectilesRef = useRef<ArrowProjectile[]>([])
   const gameLoopRef = useRef<{ stop: () => void } | null>(null)
+  const bossSpawnCountRef = useRef(0)
 
   const initPlayers = useCallback(() => {
     const players = createPlayers()
@@ -62,7 +63,7 @@ function App() {
   }, [])
 
   const spawnMonstersFn = useCallback((waveNum: number) => {
-    const newMonsters = spawnMonsters(waveNum, playersRef.current, [])
+    const newMonsters = spawnMonsters(waveNum, playersRef.current, [], bossSpawnCountRef.current)
     monstersRef.current = newMonsters
     return newMonsters
   }, [])
@@ -232,6 +233,22 @@ function App() {
     }
   }
 
+  const reviveCharacter = (index: number) => {
+    const p = playersRef.current[index]
+    if (!p || !p.isDead) return
+    p.isDead = false
+    p.hp = p.maxHp
+    p.mana = p.maxMana
+    const startPos = [{ x: 3, y: 5 }, { x: 6, y: 4 }, { x: 9, y: 6 }]
+    const pos = startPos[index] || startPos[0]
+    const SQM_SIZE = 55
+    p.gridX = pos.x
+    p.gridY = pos.y
+    p.pixelX = p.gridX * SQM_SIZE + SQM_SIZE / 2
+    p.pixelY = p.gridY * SQM_SIZE + SQM_SIZE / 2
+    forceUpdate()
+  }
+
   const handlePotionChange = (pi: number, type: 'hp' | 'mana', value: number) => {
     const np = [...playersRef.current]
     if (type === 'hp') np[pi].hpPotionPercent = value; else np[pi].manaPotionPercent = value
@@ -341,7 +358,7 @@ function App() {
         }
       },
       setTotalSuppliesCost, revivePlayersFn, () => setShowDeathOverlay(true), resetGame, spawnMonstersFn,
-      selectedMap
+      bossSpawnCountRef, selectedMap
     )
     gameLoopRef.current = loop
     return () => { loop.stop(); gameLoopRef.current = null }
@@ -406,12 +423,20 @@ function App() {
           <div style={{ background: '#1f2937', borderRadius: '8px', padding: '10px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Party (3/3)</h3>
             {players.map((p, i) => (
-              <div key={i} style={{ background: '#374151', padding: '6px', borderRadius: '4px', marginBottom: '3px', fontSize: '11px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: p.isDead ? '#555' : p.color }}></div>
-                  <span style={{ fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setSelectedCharStats(i)}>{p.label}</span>
+              <div key={i} style={{ background: '#374151', padding: '6px', borderRadius: '4px', marginBottom: '3px', fontSize: '11px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: p.isDead ? '#555' : p.color }}></div>
+                    <span style={{ fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setSelectedCharStats(i)}>{p.label}</span>
+                  </div>
+                  <span style={{ fontSize: '10px', color: '#9ca3af' }}>Lv.{p.level}</span>
                 </div>
-                <span style={{ fontSize: '10px', color: '#9ca3af' }}>Lv.{p.level}</span>
+                {p.isDead && (
+                  <button onClick={() => reviveCharacter(i)}
+                    style={{ marginTop: '4px', padding: '3px 12px', background: '#6b21a8', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', width: '100%' }}>
+                    💪 Reviver
+                  </button>
+                )}
               </div>
             ))}
           </div>
