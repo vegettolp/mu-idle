@@ -30,6 +30,7 @@ interface Props {
 const getItemImage = (item: InventoryItem | null): string => {
   if (!item?.image) return ''
   const name = item.image.replace('.jpg', '.png').replace(/%20/g, '_').replace(/ /g, '_').toLowerCase()
+  if (name.startsWith('item_')) return `/assets/sprites/items/${name}`
   return `/assets/sprites/items_transparent/${name}`
 }
 
@@ -37,6 +38,7 @@ export default function Inventory({ zen, items, playerLevel, label, onSellItem, 
   const totalSlots = 40
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({})
   const [hoveredItem, setHoveredItem] = useState<InventoryItem | null>(null)
+  const [hoveredSlot, setHoveredSlot] = useState<number | null>(null)
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
 
   const itemScores = useMemo(() => {
@@ -84,11 +86,17 @@ export default function Inventory({ zen, items, playerLevel, label, onSellItem, 
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: item ? 'pointer' : 'default', overflow: 'hidden', position: 'relative'
             }}
-              onMouseEnter={(e) => { if (item) { setHoveredItem(item); setHoverPos({ x: e.clientX, y: e.clientY }) } }}
-              onMouseLeave={() => setHoveredItem(null)}
+              onMouseEnter={(e) => { if (item) { setHoveredItem(item); setHoveredSlot(i); setHoverPos({ x: e.clientX, y: e.clientY }) } }}
+              onMouseLeave={() => { setHoveredItem(null); setHoveredSlot(null) }}
               title={item?.name || `Slot ${i + 1}`}
             >
-              {item ? (!hasError && imgUrl ? <img src={imgUrl} style={{ width: '40px', height: '40px', objectFit: 'contain' }} alt={item.name} onError={() => handleImgError(item)} /> : <span style={{ fontSize: '16px' }}>{item.icon}</span>) : <span style={{ fontSize: '9px', color: '#333' }}>{i + 1}</span>}
+              {item ? (!hasError && imgUrl ?
+                <img src={imgUrl} style={{
+                  width: '40px', height: '40px', objectFit: 'contain',
+                  transition: 'transform 0.15s ease',
+                  transform: hoveredSlot === i ? 'scale(1.5)' : 'scale(1)'
+                }} alt={item.name} onError={() => handleImgError(item)} />
+                : <span style={{ fontSize: '16px' }}>{item.icon}</span>) : <span style={{ fontSize: '9px', color: '#333' }}>{i + 1}</span>}
             </div>
           )
         })}
@@ -99,8 +107,16 @@ export default function Inventory({ zen, items, playerLevel, label, onSellItem, 
       </div>
 
       {hoveredItem && (
-        <div style={{ position: 'fixed', left: hoverPos.x + 10, top: hoverPos.y + 10, background: '#111', border: '1px solid #6b21a8', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', color: '#d1d5db', zIndex: 2000, pointerEvents: 'none' }}>
-          <div style={{ fontWeight: 'bold', color: '#fbbf24', marginBottom: '3px' }}>{hoveredItem.name}</div>
+        <div style={{
+          position: 'fixed',
+          left: hoverPos.x > window.innerWidth / 2 ? hoverPos.x - 270 : hoverPos.x + 10,
+          top: hoverPos.y + 10,
+          background: '#111', border: '1px solid #6b21a8', borderRadius: '6px', padding: '8px 12px', fontSize: '11px', color: '#d1d5db', zIndex: 2000, pointerEvents: 'none', minWidth: '150px'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+            <img src={getItemImage(hoveredItem)} style={{ width: '240px', height: '240px', objectFit: 'contain', imageRendering: 'pixelated' }} alt={hoveredItem.name} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          </div>
+          <div style={{ fontWeight: 'bold', color: '#fbbf24', marginBottom: '3px', textAlign: 'center' }}>{hoveredItem.name}</div>
           {hoveredItem.damageMin && <div>⚔️ Dano: {hoveredItem.damageMin}-{hoveredItem.damageMax}</div>}
           {hoveredItem.wizardry && <div>🔮 Wizardry: +{hoveredItem.wizardry}</div>}
           {hoveredItem.defense && <div>🛡️ Defesa: +{hoveredItem.defense}</div>}

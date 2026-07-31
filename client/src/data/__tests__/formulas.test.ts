@@ -87,6 +87,30 @@ describe('Formulas.calculateDamage', () => {
   })
 })
 
+describe('Formulas.getAttackCooldown', () => {
+  it('returns base cooldown with zero agility', () => {
+    expect(Formulas.getAttackCooldown(0, false)).toBe(80)
+    expect(Formulas.getAttackCooldown(0, true)).toBe(140)
+  })
+
+  it('decreases cooldown as agility grows', () => {
+    const low = Formulas.getAttackCooldown(10, false)
+    const high = Formulas.getAttackCooldown(200, false)
+    expect(high).toBeLessThan(low)
+  })
+
+  it('never goes below the minimum cooldown', () => {
+    expect(Formulas.getAttackCooldown(100000, false)).toBeGreaterThanOrEqual(50)
+    expect(Formulas.getAttackCooldown(100000, true)).toBeGreaterThanOrEqual(90)
+  })
+
+  it('is gradual (diminishing returns) at high agility', () => {
+    const stepMid = Formulas.getAttackCooldown(100, false) - Formulas.getAttackCooldown(120, false)
+    const stepHigh = Formulas.getAttackCooldown(200, false) - Formulas.getAttackCooldown(220, false)
+    expect(stepMid).toBeGreaterThanOrEqual(stepHigh)
+  })
+})
+
 describe('Formulas.attackRate', () => {
   it('calculates hit rate based on level, agi and class', () => {
     const dk = Formulas.attackRate(1, 20, 'DARK_KNIGHT')

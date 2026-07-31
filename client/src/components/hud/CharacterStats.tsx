@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { PlayerData } from '../../engine/Player'
 import { Formulas } from '../../data/formulas'
 
@@ -21,6 +21,7 @@ const getItemImage = (item: any): string => {
     .replace(/%20/g, '_')
     .replace(/ /g, '_')
     .toLowerCase()
+  if (name.startsWith('item_')) return `/assets/sprites/items/${name}`
   return `/assets/sprites/items_transparent/${name}`
 }
 
@@ -46,10 +47,26 @@ const equipSlots = [
 export default function CharacterStats({ player, inventoryItems, zen, onClose, onEquip, onUnequip, onSellItem, onSellAll, playerIndex }: Props) {
   const [draggedItem, setDraggedItem] = useState<any>(null)
   const [hoveredItem, setHoveredItem] = useState<any>(null)
+  const [hoveredSlot, setHoveredSlot] = useState<number | null>(null)
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [showCompare, setShowCompare] = useState(false)
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({})
+
+  const itemScores = useMemo(() => {
+    return inventoryItems.map(item => ({ id: item.id, score: Formulas.getItemScore(item, player.level) }))
+  }, [inventoryItems, player.level])
+
+  const scoreRange = useMemo(() => {
+    if (itemScores.length === 0) return { min: 0, max: 0 }
+    const scores = itemScores.map(s => s.score)
+    return { min: Math.min(...scores), max: Math.max(...scores) }
+  }, [itemScores])
+
+  const getScoreForItem = (itemId: string) => {
+    const found = itemScores.find(s => s.id === itemId)
+    return found ? found.score : 0
+  }
 
   const eq = player.equipment
   let damageInfo = { min: 0, max: 0 }
@@ -221,18 +238,18 @@ export default function CharacterStats({ player, inventoryItems, zen, onClose, o
                     draggable
                     onDragStart={() => setDraggedItem(item)}
                     onClick={() => handleItemClick(item)}
-                    onMouseEnter={(e) => { setHoveredItem(item); setHoverPos({ x: e.clientX, y: e.clientY }) }}
-                    onMouseLeave={() => setHoveredItem(null)}
+                    onMouseEnter={(e) => { setHoveredItem(item); setHoveredSlot(idx); setHoverPos({ x: e.clientX, y: e.clientY }) }}
+                    onMouseLeave={() => { setHoveredItem(null); setHoveredSlot(null) }}
                     style={{
                       width: '70px', height: '70px',
-                      background: '#1a1a3e', border: '2px solid #6b21a8',
+                      background: '#1a1a3e', border: `2px solid ${Formulas.getItemQualityColor(getScoreForItem(item.id), scoreRange.min, scoreRange.max, inventoryItems.length > 0)}`,
                       borderRadius: '8px', display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', position: 'relative'
                     }}
                   >
                     {!hasError && imgUrl ? (
-                      <img src={imgUrl} style={{ width: '58px', height: '58px', objectFit: 'contain' }} alt={item.name} onError={() => handleImgError(item)} />
+                      <img src={imgUrl} style={{ width: '58px', height: '58px', objectFit: 'contain', transition: 'transform 0.15s ease', transform: hoveredSlot === idx ? 'scale(1.5)' : 'scale(1)' }} alt={item.name} onError={() => handleImgError(item)} />
                     ) : (
                       <span style={{ fontSize: '26px' }}>{item.icon}</span>
                     )}
@@ -279,11 +296,20 @@ export default function CharacterStats({ player, inventoryItems, zen, onClose, o
         )}
 
         {hoveredItem && !selectedItem && (
-          <div style={{ position: 'fixed', left: hoverPos.x + 15, top: hoverPos.y + 15, background: '#111', border: '1px solid #6b21a8', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#d1d5db', zIndex: 2000, whiteSpace: 'pre-line', pointerEvents: 'none' }}>
-            <div style={{ fontWeight: 'bold', color: '#fbbf24', marginBottom: '4px' }}>{hoveredItem.name}</div>
+          <div style={{
+            position: 'fixed',
+            left: hoverPos.x > window.innerWidth / 2 ? hoverPos.x - 270 : hoverPos.x + 10,
+            top: hoverPos.y + 10,
+            background: '#111', border: '1px solid #6b21a8', borderRadius: '6px', padding: '8px 12px', fontSize: '11px', color: '#d1d5db', zIndex: 2000, pointerEvents: 'none', minWidth: '150px'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+              <img src={getItemImage(hoveredItem)} style={{ width: '240px', height: '240px', objectFit: 'contain', imageRendering: 'pixelated' }} alt={hoveredItem.name} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+            </div>
+            <div style={{ fontWeight: 'bold', color: '#fbbf24', marginBottom: '3px', textAlign: 'center' }}>{hoveredItem.name}</div>
             {hoveredItem.damageMin && <div>⚔️ Dano: {hoveredItem.damageMin}-{hoveredItem.damageMax}</div>}
             {hoveredItem.wizardry && <div>🔮 Wizardry: +{hoveredItem.wizardry}</div>}
             {hoveredItem.defense && <div>🛡️ Defesa: +{hoveredItem.defense}</div>}
+            <div style={{ color: '#6b7280', marginTop: '2px' }}>📊 Level: {hoveredItem.level}</div>
           </div>
         )}
       </div>

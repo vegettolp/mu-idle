@@ -117,6 +117,20 @@ export const Formulas = {
   },
 
   // ============================================
+  // ATTACK SPEED (cooldown de ataque por Agilidade)
+  // Progressão gradual com retornos decrescentes:
+  // cooldown = base - (base-min) * agi/(agi+K)
+  // agi=0 -> base | agi->inf -> min (nunca abaixo do teto)
+  // ============================================
+  getAttackCooldown: (agi: number, isAoE: boolean): number => {
+    const base = isAoE ? 140 : 80
+    const minCooldown = isAoE ? 90 : 50
+    const K = 80
+    const reduction = (base - minCooldown) * (agi / (agi + K))
+    return Math.max(minCooldown, Math.round(base - reduction))
+  },
+
+  // ============================================
   // ITEM SCALING (escala stats do item conforme nível do player)
   // ============================================
   scaleItemStat: (baseStat: number, itemLevel: number, playerLevel: number): number => {

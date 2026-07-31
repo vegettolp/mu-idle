@@ -38,9 +38,9 @@ export const ITEMS_DATA = {
     { id: 'w6', name: 'Serpent Staff', type: 'weapon', slot: 'weapon', class: ['DARK_WIZARD'], damageMin: 2, damageMax: 6, wizardry: 8, level: 10, reqEne: 30, icon: '🪄', image: 'Serpent%20Staff.jpg', zenValue: 1200 },
     { id: 'w7', name: 'Skull Staff', type: 'weapon', slot: 'weapon', class: ['DARK_WIZARD'], damageMin: 3, damageMax: 9, wizardry: 12, level: 18, reqEne: 50, icon: '💀', image: 'Skull%20Staff.jpg', zenValue: 3000 },
     { id: 'w8', name: 'Archangel Staff', type: 'weapon', slot: 'weapon', class: ['DARK_WIZARD'], damageMin: 5, damageMax: 12, wizardry: 18, level: 28, reqEne: 80, icon: '👼', image: 'Archangel%20Staff.jpg', zenValue: 7500 },
-    { id: 'w9', name: 'Short Bow', type: 'weapon', slot: 'weapon', class: ['ELF'], damageMin: 4, damageMax: 8, level: 1, reqStr: 15, reqAgi: 30, icon: '🏹', image: 'Short%20Bow.jpg', zenValue: 100 },
-    { id: 'w10', name: 'Elven Bow', type: 'weapon', slot: 'weapon', class: ['ELF'], damageMin: 8, damageMax: 14, level: 12, reqStr: 30, reqAgi: 60, icon: '🏹', image: 'Elven%20Bow.jpg', zenValue: 1500 },
-    { id: 'w11', name: 'Titan Bow', type: 'weapon', slot: 'weapon', class: ['ELF'], damageMin: 14, damageMax: 22, level: 22, reqStr: 50, reqAgi: 100, icon: '🏹', image: 'Titan%20Bow.jpg', zenValue: 4500 },
+    { id: 'w9', name: 'Short Bow', type: 'weapon', slot: 'weapon', class: ['ELF'], damageMin: 4, damageMax: 8, level: 1, reqStr: 15, reqAgi: 30, icon: '🏹', image: 'item_4_5_0_a.png', zenValue: 100 },
+    { id: 'w10', name: 'Elven Bow', type: 'weapon', slot: 'weapon', class: ['ELF'], damageMin: 8, damageMax: 14, level: 12, reqStr: 30, reqAgi: 60, icon: '🏹', image: 'item_4_5_7_a.png', zenValue: 1500 },
+    { id: 'w11', name: 'Titan Bow', type: 'weapon', slot: 'weapon', class: ['ELF'], damageMin: 14, damageMax: 22, level: 22, reqStr: 50, reqAgi: 100, icon: '🏹', image: 'item_4_5_15_a.png', zenValue: 4500 },
   ] as ItemData[],
   
   armors: [

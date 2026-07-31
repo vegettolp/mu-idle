@@ -201,7 +201,7 @@ export function processPlayerCombat(
     player.isAttacking = true
     setTimeout(() => { player.isAttacking = false }, 300)
     if (target.hp <= 0) player.targetId = null
-    player.attackCooldown = skill?.type==='aoe' ? 70 : 40
+    player.attackCooldown = Formulas.getAttackCooldown(player.stats.agi, skill?.type==='aoe')
   }
 
   if (player.hpPotions>0 && (player.hp/player.maxHp)*100 < player.hpPotionPercent) { player.hp=Math.min(player.maxHp,player.hp+50); player.hpPotions--; setTotalSuppliesCost(p=>p+50) }

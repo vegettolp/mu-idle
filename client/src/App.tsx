@@ -5,6 +5,7 @@ import HuntAnalyzer from './components/hud/HuntAnalyzer'
 import CharacterStats from './components/hud/CharacterStats'
 import LoginPage from './pages/LoginPage'
 import { ITEMS_DATA } from './data/items'
+import { GENERATED_ITEMS } from './data/itemsGenerated'
 import { ALL_SKILLS } from './data/skills'
 import { Formulas } from './data/formulas'
 import { PlayerData, createPlayers } from './engine/Player'
@@ -29,6 +30,7 @@ function App() {
   const [autoRepeat, setAutoRepeat] = useState(false)
   const [selectedCharStats, setSelectedCharStats] = useState<number | null>(null)
   const [sessionStartTime] = useState(Date.now())
+  const [resetKey, setResetKey] = useState(0)
   const [totalLootValue, setTotalLootValue] = useState(0)
   const [totalSuppliesCost, setTotalSuppliesCost] = useState(0)
   const [playerDamage, setPlayerDamage] = useState<Record<string, number>>({ DK: 0, DW: 0, ELF: 0 })
@@ -87,6 +89,9 @@ function App() {
       p.gridY = startPos[i].y
       p.pixelX = p.gridX * SQM_SIZE + SQM_SIZE / 2
       p.pixelY = p.gridY * SQM_SIZE + SQM_SIZE / 2
+      p.attackCooldown = 0
+      p.moveCooldown = 0
+      p.targetId = null
     })
     isDeadRef.current = false
     deadTimerRef.current = 0
@@ -117,13 +122,17 @@ function App() {
   }, [])
 
   const resetGame = useCallback(() => {
+    if (gameLoopRef.current) { gameLoopRef.current.stop(); gameLoopRef.current = null }
+    setResetKey(k => k + 1)
     initPlayers()
     waveRef.current = 1; killsRef.current = 0
     isDeadRef.current = false; deadTimerRef.current = 0
     setWave(1); setKills(0)
+    setZen(0)
     setTotalLootValue(0); setTotalSuppliesCost(0)
     setPlayerDamage({ DK: 0, DW: 0, ELF: 0 })
     setRevivesRemaining(MAX_REVIVES)
+    setInventoryItems({ DK: [], DW: [], ELF: [] })
     spawnMonstersFn(1)
     particleSystemRef.current.clear()
     ghostProjectilesRef.current = []; twistingSlashRef.current = null; arrowProjectilesRef.current = []
@@ -140,7 +149,7 @@ function App() {
     killsRef.current++; setKills(killsRef.current)
     const playerLabel = killerPlayer.label as PlayerLabel
     if (Math.random() < (monster.isBoss ? 1.0 : 0.3)) {
-      const allItems = [...ITEMS_DATA.weapons, ...ITEMS_DATA.armors, ...ITEMS_DATA.accessories]
+      const allItems = [...ITEMS_DATA.weapons, ...ITEMS_DATA.armors, ...ITEMS_DATA.accessories, ...GENERATED_ITEMS]
       const available = allItems.filter(item => item.level <= monster.level + 10)
       if (available.length > 0) {
         const rawItem = available[Math.floor(Math.random() * available.length)]
@@ -246,6 +255,9 @@ function App() {
     p.gridY = pos.y
     p.pixelX = p.gridX * SQM_SIZE + SQM_SIZE / 2
     p.pixelY = p.gridY * SQM_SIZE + SQM_SIZE / 2
+    p.attackCooldown = 0
+    p.moveCooldown = 0
+    p.targetId = null
     forceUpdate()
   }
 
@@ -275,6 +287,9 @@ function App() {
       p.isDead = false
       p.hp = p.maxHp
       p.mana = p.maxMana
+      p.attackCooldown = 0
+      p.moveCooldown = 0
+      p.targetId = null
     })
     monstersRef.current = []
     setTimeout(() => {
@@ -362,7 +377,7 @@ function App() {
     )
     gameLoopRef.current = loop
     return () => { loop.stop(); gameLoopRef.current = null }
-  }, [loggedIn, selectedMap])
+  }, [loggedIn, selectedMap, resetKey])
 
   useEffect(() => { autoRepeatRef.current = autoRepeat }, [autoRepeat])
   if (!loggedIn) return <LoginPage onLogin={handleLogin} />
